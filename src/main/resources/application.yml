@@ -1,3 +1,19 @@
+server:
+  port: 8080
 spring:
   main:
     banner-mode: off
+  datasource:
+    username: root
+    password: 123456
+    url: jdbc:mysql://localhost:3306/training?useUnicode=true&characterEncoding=utf8&characterSetResults=utf8&createDatabaseIfNotExist=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  sql:
+    init:
+      continue-on-error: true
+      schema-locations: classpath*:db/schema.sql
+      mode: always
+springdoc:
+  swagger-ui:
+    path: /doc.html
+    
