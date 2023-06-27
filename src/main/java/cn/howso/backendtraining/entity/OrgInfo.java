@@ -11,14 +11,6 @@ import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * <p>
- * 组织机构
- * </p>
- *
- * @author horaoen
- * @since 2023-06-27
- */
 @Getter
 @Setter
 @TableName("t_org_info")

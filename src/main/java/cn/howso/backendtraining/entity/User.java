@@ -11,14 +11,7 @@ import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * <p>
- * 用户表
- * </p>
- *
- * @author horaoen
- * @since 2023-06-27
- */
+
 @Getter
 @Setter
 @TableName("t_user")
