@@ -38,6 +38,7 @@ public class CodeGenerator {
                             new Column("update_user", FieldFill.UPDATE)
                     )
                 .logicDeleteColumnName("delete_mark")
+                .controllerBuilder().enableRestStyle()
                 .build();
     }
 
