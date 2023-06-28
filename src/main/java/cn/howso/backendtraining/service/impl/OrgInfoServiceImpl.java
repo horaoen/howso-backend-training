@@ -29,6 +29,7 @@ public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> impl
     private static final String CHINA_TOWER_ROG_CODE = "100000";
     private static final String ORG_TREE_KEY = "org_tree";
     private static final String ORG_INFOS_KEY = "org_infos";
+    private static final String ORG_TREE_WITH_USER_KEY = "org_tree_with_user";
     private static final Jedis jedis = RedisDS.create().getJedis();
     
     private final IUserService userService;
@@ -38,6 +39,7 @@ public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> impl
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
     public Tree getOrgTree() {
         // 获取缓存
         String cacheStr = jedis.get(ORG_TREE_KEY);
@@ -58,7 +60,13 @@ public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> impl
      * 将所有部门org_code和对应的users一次性预处理成map, 见 {@link IUserService#getUserGroupByOrgCode()}
      */
     @Override
+    @SuppressWarnings("rawtypes")
     public Tree getOrgTreeWithUser() {
+        String cacheStr = jedis.get(ORG_TREE_WITH_USER_KEY);
+        if (StrUtil.isNotBlank(cacheStr)) {
+            return JSONUtil.parseObj(cacheStr).toBean(Tree.class);
+        }
+        
         Map<String, List<User>> userMap = userService.getUserGroupByOrgCode();
         List<TreeNode<String>> treeNodes = this.buildOrgTreeNodes();
         Tree<String> tree = TreeUtil.buildSingle(treeNodes, CHINA_TOWER_ROG_CODE);
@@ -67,6 +75,7 @@ public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> impl
                 child.putExtra("users", userMap.get(child.getId()));
             }
         });
+        jedis.set(ORG_TREE_WITH_USER_KEY, JSONUtil.toJsonStr(tree));
         return tree;
     }
     
