@@ -38,7 +38,7 @@ create table t_user
     sex           varchar(10)                           null comment '性别',
     birthday      varchar(32)                           null comment '生日',
     native_place  varchar(64)                           null comment '籍贯',
-    identityCard  varchar(32)                           null comment '身份证',
+    identity_card  varchar(32)                          null comment '身份证',
     degree        varchar(32)                           null comment '学历',
     finish_school varchar(100)                          null comment '毕业院校',
     mobile        varchar(32)                           null comment '手机',
