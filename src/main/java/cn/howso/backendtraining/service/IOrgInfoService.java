@@ -12,7 +12,7 @@ public interface IOrgInfoService extends IService<OrgInfo> {
     Tree getOrgTree();
 
     /**
-     * 获取"中国铁塔"部门下的组织架构树并携带每个部门的用户信息
+     * 获取"中国铁塔"部门下的组织架构树并携带每个叶子结点部门的用户信息
      */
     Tree getOrgTreeWithUser();
 }

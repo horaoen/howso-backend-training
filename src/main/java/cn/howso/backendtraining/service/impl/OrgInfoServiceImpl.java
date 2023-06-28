@@ -1,8 +1,10 @@
 package cn.howso.backendtraining.service.impl;
 
 import cn.howso.backendtraining.entity.OrgInfo;
+import cn.howso.backendtraining.entity.User;
 import cn.howso.backendtraining.mapper.OrgInfoMapper;
 import cn.howso.backendtraining.service.IOrgInfoService;
+import cn.howso.backendtraining.service.IUserService;
 import cn.hutool.core.lang.tree.Tree;
 import cn.hutool.core.lang.tree.TreeNode;
 import cn.hutool.core.lang.tree.TreeUtil;
@@ -14,14 +16,27 @@ import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * org_tree 缓存反序列化后是个无范型Tree对象难以递归塞值(每个部门的user)
+ * 所以选择将所有部门加入缓存, 所有方法获取部门通过 {@link #buildOrgTreeNodes()}
+ */
 @Service
 public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> implements IOrgInfoService {
 
     private static final String CHINA_TOWER_ROG_CODE = "100000";
     private static final String ORG_TREE_KEY = "org_tree";
+    private static final String ORG_INFOS_KEY = "org_infos";
     private static final Jedis jedis = RedisDS.create().getJedis();
+    
+    private final IUserService userService;
+
+    public OrgInfoServiceImpl(IUserService userService) {
+        this.userService = userService;
+    }
+
     @Override
     public Tree getOrgTree() {
         // 获取缓存
@@ -29,8 +44,49 @@ public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> impl
         if(StrUtil.isNotBlank(cacheStr)) {
             return JSONUtil.parseObj(cacheStr).toBean(Tree.class);
         }
-        // 构建所有部门treeNodes
-        List<TreeNode<String>> treeNodes = this.list().stream().map(orgInfo -> {
+        
+        List<TreeNode<String>> treeNodes = buildOrgTreeNodes(); 
+
+        Tree<String> tree = TreeUtil.buildSingle(treeNodes, CHINA_TOWER_ROG_CODE);
+        // 添加缓存
+        jedis.set(ORG_TREE_KEY, JSONUtil.toJsonStr(tree));
+        return tree;
+    }
+
+    /**
+     * 对部门分别查询其用户会频繁访问数据库存在性能问题
+     * 将所有部门org_code和对应的users一次性预处理成map, 见 {@link IUserService#getUserGroupByOrgCode()}
+     */
+    @Override
+    public Tree getOrgTreeWithUser() {
+        Map<String, List<User>> userMap = userService.getUserGroupByOrgCode();
+        List<TreeNode<String>> treeNodes = this.buildOrgTreeNodes();
+        Tree<String> tree = TreeUtil.buildSingle(treeNodes, CHINA_TOWER_ROG_CODE);
+        tree.walk(child -> {
+            if(!child.hasChild()) {
+                child.putExtra("users", userMap.get(child.getId()));
+            }
+        });
+        return tree;
+    }
+    
+    private List<TreeNode<String>> buildOrgTreeNodes() {
+        // 获取缓存
+        String cacheStr = jedis.get(ORG_INFOS_KEY);
+        List<OrgInfo> orgInfos;
+        if (StrUtil.isNotBlank(cacheStr)) {
+            orgInfos = JSONUtil.toList(cacheStr, OrgInfo.class);
+        } else {
+            orgInfos = this.list();
+            jedis.set(ORG_INFOS_KEY, JSONUtil.toJsonStr(orgInfos));
+        }
+        
+        /*
+            构建所有部门treeNodes
+            select * from t_org_info oi where oi.org_name = '中国铁塔'
+            output: { "id": 239, "org_code": "100000", "org_name": "中国铁塔", "org_parent_code": "000000" ...}
+         */
+        return orgInfos.stream().map(orgInfo -> {
             int weight;
             try {
                 weight = Integer.parseInt(orgInfo.getOrgSort());
@@ -39,20 +95,5 @@ public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> impl
             }
             return new TreeNode<>(orgInfo.getOrgCode(), orgInfo.getOrgParentCode(), orgInfo.getOrgName(), weight);
         }).collect(Collectors.toList());
-
-        /*
-            select * from t_org_info oi where oi.org_name = '中国铁塔'
-            output: { "id": 239, "org_code": "100000", "org_name": "中国铁塔", "org_parent_code": "000000" ...}
-         */
-
-        Tree<String> tree = TreeUtil.buildSingle(treeNodes, CHINA_TOWER_ROG_CODE);
-        // 添加缓存
-        jedis.set(ORG_TREE_KEY, JSONUtil.toJsonStr(tree));
-        return tree;
-    }
-
-    @Override
-    public Tree getOrgTreeWithUser() {
-        return null;
     }
 }
