@@ -10,4 +10,9 @@ public interface IOrgInfoService extends IService<OrgInfo> {
      * 获取"中国铁塔"部门下的组织架构树
      */
     Tree getOrgTree();
+
+    /**
+     * 获取"中国铁塔"部门下的组织架构树并携带每个部门的用户信息
+     */
+    Tree getOrgTreeWithUser();
 }

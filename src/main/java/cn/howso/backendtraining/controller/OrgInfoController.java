@@ -23,4 +23,10 @@ public class OrgInfoController {
     public Tree getOrgTree() {
         return this.orgInfoService.getOrgTree();
     }
+    
+    @Operation(summary = "获取携带用户的组织架构树")
+    @GetMapping("treeWithUser") 
+    public Tree getOrgTreeWithUse() {
+        return this.orgInfoService.getOrgTreeWithUser();
+    }
 }
