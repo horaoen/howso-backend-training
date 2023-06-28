@@ -16,4 +16,8 @@ spring:
 springdoc:
   swagger-ui:
     path: /doc.html
-    
+mybatis-plus:
+  mapper-locations: mapper/*/*Mapper.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
