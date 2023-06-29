@@ -8,7 +8,7 @@ paginate: true
 ## <!--fit --> 实习生培训——后端开发基础
 ##### [资料](https://www.aliyundrive.com/s/A1d5WDSfjqg)
 ##### [课件及源代码](https://github.com/horaoen/howso-backend-training)
-#### 联系邮箱：horaoen@gmail.com
+##### 联系邮箱：horaoen@gmail.com
 ---
 ## 摘要
 - [基本开发环境](#基本开发环境)
