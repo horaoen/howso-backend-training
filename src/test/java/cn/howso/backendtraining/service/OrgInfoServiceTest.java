@@ -2,7 +2,6 @@ package cn.howso.backendtraining.service;
 
 import cn.howso.backendtraining.entity.OrgInfo;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -12,7 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 
 @SpringBootTest
-@Slf4j
 public class OrgInfoServiceTest {
     @Resource
     private IOrgInfoService orgInfoService;
