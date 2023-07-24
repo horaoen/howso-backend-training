@@ -20,18 +20,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * org_tree 缓存反序列化后是个无范型Tree对象难以递归塞值(每个部门的user)
- * 所以选择将所有部门加入缓存, 所有方法获取部门通过 {@link #buildOrgTreeNodes()}
- */
 @Service
 public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> implements IOrgInfoService {
 
     private static final String CHINA_TOWER_ORG_CODE = "100000";
     private static final String ORG_TREE_KEY = "org_tree";
-    private static final String ORG_INFOS_KEY = "org_infos";
     private static final String ORG_TREE_WITH_USER_KEY = "org_tree_with_user";
-    private static final Jedis jedis = RedisDS.create().getJedis();
 
     private final IUserService userService;
 
@@ -42,6 +36,7 @@ public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> impl
     @Override
     public Tree<String> getOrgTree() {
         // 获取缓存
+        Jedis jedis = this.getJedis();
         String cacheStr = jedis.get(ORG_TREE_KEY);
         if (StrUtil.isNotBlank(cacheStr)) {
             return JSONUtil
@@ -49,9 +44,7 @@ public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> impl
                     .toBean(new TypeReference<Tree<String>>() {
                     });
         }
-
         List<TreeNode<String>> treeNodes = buildOrgTreeNodes();
-
         Tree<String> tree = TreeUtil.buildSingle(treeNodes, CHINA_TOWER_ORG_CODE);
         // 添加缓存
         jedis.set(ORG_TREE_KEY, JSONUtil.toJsonStr(tree));
@@ -64,35 +57,25 @@ public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> impl
      */
     @Override
     public Tree<String> getOrgTreeWithUser() {
-        String cacheStr = jedis.get(ORG_TREE_WITH_USER_KEY);
+        String cacheStr = this.getJedis().get(ORG_TREE_WITH_USER_KEY);
         if (StrUtil.isNotBlank(cacheStr)) {
             return JSONUtil.parseObj(cacheStr).toBean(new TypeReference<Tree<String>>() {
             });
         }
 
         Map<String, List<User>> userMap = userService.getUserGroupByOrgCode();
-        List<TreeNode<String>> treeNodes = this.buildOrgTreeNodes();
-        Tree<String> tree = TreeUtil.buildSingle(treeNodes, CHINA_TOWER_ORG_CODE);
+        Tree<String> tree = this.getOrgTree();
         tree.walk(child -> {
             if (!child.hasChild()) {
                 child.putExtra("users", userMap.get(child.getId()));
             }
         });
-        jedis.set(ORG_TREE_WITH_USER_KEY, JSONUtil.toJsonStr(tree));
+        this.getJedis().set(ORG_TREE_WITH_USER_KEY, JSONUtil.toJsonStr(tree));
         return tree;
     }
 
     private List<TreeNode<String>> buildOrgTreeNodes() {
-        // 获取缓存
-        String cacheStr = jedis.get(ORG_INFOS_KEY);
-        List<OrgInfo> orgInfos;
-        if (StrUtil.isNotBlank(cacheStr)) {
-            orgInfos = JSONUtil.toList(cacheStr, OrgInfo.class);
-        } else {
-            orgInfos = this.list();
-            jedis.set(ORG_INFOS_KEY, JSONUtil.toJsonStr(orgInfos));
-        }
-        
+        List<OrgInfo> orgInfos = this.list();
         /*
             构建所有部门treeNodes
             select * from t_org_info oi where oi.org_name = '中国铁塔'
@@ -107,5 +90,11 @@ public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> impl
             }
             return new TreeNode<>(orgInfo.getOrgCode(), orgInfo.getOrgParentCode(), orgInfo.getOrgName(), weight);
         }).collect(Collectors.toList());
+    }
+
+    private Jedis getJedis() {
+        try (RedisDS redisDS = RedisDS.create()) {
+            return redisDS.getJedis();
+        }
     }
 }
