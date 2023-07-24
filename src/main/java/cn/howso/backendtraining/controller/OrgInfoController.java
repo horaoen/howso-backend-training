@@ -20,15 +20,13 @@ public class OrgInfoController {
     
     @Operation(summary = "组织架构树")
     @GetMapping("tree")
-    @SuppressWarnings("rawtypes")
-    public Tree getOrgTree() {
+    public Tree<String> getOrgTree() {
         return this.orgInfoService.getOrgTree();
     }
     
     @Operation(summary = "获取携带用户的组织架构树")
     @GetMapping("treeWithUser") 
-    @SuppressWarnings("rawtypes")
-    public Tree getOrgTreeWithUse() {
+    public Tree<String> getOrgTreeWithUse() {
         return this.orgInfoService.getOrgTreeWithUser();
     }
 }

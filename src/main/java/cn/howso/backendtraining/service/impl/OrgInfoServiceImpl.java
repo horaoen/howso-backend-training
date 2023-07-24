@@ -5,6 +5,7 @@ import cn.howso.backendtraining.entity.User;
 import cn.howso.backendtraining.mapper.OrgInfoMapper;
 import cn.howso.backendtraining.service.IOrgInfoService;
 import cn.howso.backendtraining.service.IUserService;
+import cn.hutool.core.lang.TypeReference;
 import cn.hutool.core.lang.tree.Tree;
 import cn.hutool.core.lang.tree.TreeNode;
 import cn.hutool.core.lang.tree.TreeUtil;
@@ -26,12 +27,12 @@ import java.util.stream.Collectors;
 @Service
 public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> implements IOrgInfoService {
 
-    private static final String CHINA_TOWER_ROG_CODE = "100000";
+    private static final String CHINA_TOWER_ORG_CODE = "100000";
     private static final String ORG_TREE_KEY = "org_tree";
     private static final String ORG_INFOS_KEY = "org_infos";
     private static final String ORG_TREE_WITH_USER_KEY = "org_tree_with_user";
     private static final Jedis jedis = RedisDS.create().getJedis();
-    
+
     private final IUserService userService;
 
     public OrgInfoServiceImpl(IUserService userService) {
@@ -39,17 +40,19 @@ public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> impl
     }
 
     @Override
-    @SuppressWarnings("rawtypes")
-    public Tree getOrgTree() {
+    public Tree<String> getOrgTree() {
         // 获取缓存
         String cacheStr = jedis.get(ORG_TREE_KEY);
-        if(StrUtil.isNotBlank(cacheStr)) {
-            return JSONUtil.parseObj(cacheStr).toBean(Tree.class);
+        if (StrUtil.isNotBlank(cacheStr)) {
+            return JSONUtil
+                    .parseObj(cacheStr)
+                    .toBean(new TypeReference<Tree<String>>() {
+                    });
         }
-        
-        List<TreeNode<String>> treeNodes = buildOrgTreeNodes(); 
 
-        Tree<String> tree = TreeUtil.buildSingle(treeNodes, CHINA_TOWER_ROG_CODE);
+        List<TreeNode<String>> treeNodes = buildOrgTreeNodes();
+
+        Tree<String> tree = TreeUtil.buildSingle(treeNodes, CHINA_TOWER_ORG_CODE);
         // 添加缓存
         jedis.set(ORG_TREE_KEY, JSONUtil.toJsonStr(tree));
         return tree;
@@ -60,25 +63,25 @@ public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> impl
      * 将所有部门org_code和对应的users一次性预处理成map, 见 {@link IUserService#getUserGroupByOrgCode()}
      */
     @Override
-    @SuppressWarnings("rawtypes")
-    public Tree getOrgTreeWithUser() {
+    public Tree<String> getOrgTreeWithUser() {
         String cacheStr = jedis.get(ORG_TREE_WITH_USER_KEY);
         if (StrUtil.isNotBlank(cacheStr)) {
-            return JSONUtil.parseObj(cacheStr).toBean(Tree.class);
+            return JSONUtil.parseObj(cacheStr).toBean(new TypeReference<Tree<String>>() {
+            });
         }
-        
+
         Map<String, List<User>> userMap = userService.getUserGroupByOrgCode();
         List<TreeNode<String>> treeNodes = this.buildOrgTreeNodes();
-        Tree<String> tree = TreeUtil.buildSingle(treeNodes, CHINA_TOWER_ROG_CODE);
+        Tree<String> tree = TreeUtil.buildSingle(treeNodes, CHINA_TOWER_ORG_CODE);
         tree.walk(child -> {
-            if(!child.hasChild()) {
+            if (!child.hasChild()) {
                 child.putExtra("users", userMap.get(child.getId()));
             }
         });
         jedis.set(ORG_TREE_WITH_USER_KEY, JSONUtil.toJsonStr(tree));
         return tree;
     }
-    
+
     private List<TreeNode<String>> buildOrgTreeNodes() {
         // 获取缓存
         String cacheStr = jedis.get(ORG_INFOS_KEY);
