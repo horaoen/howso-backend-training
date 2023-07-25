@@ -28,15 +28,17 @@ public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> impl
     private static final String ORG_TREE_WITH_USER_KEY = "org_tree_with_user";
 
     private final IUserService userService;
+    private final RedisDS redisDS;
 
-    public OrgInfoServiceImpl(IUserService userService) {
+    public OrgInfoServiceImpl(IUserService userService, RedisDS redisDS) {
         this.userService = userService;
+        this.redisDS = redisDS;
     }
 
     @Override
     public Tree<String> getOrgTree() {
         // 获取缓存
-        Jedis jedis = this.getJedis();
+        Jedis jedis = this.redisDS.getJedis();
         String cacheStr = jedis.get(ORG_TREE_KEY);
         if (StrUtil.isNotBlank(cacheStr)) {
             return JSONUtil
@@ -57,7 +59,8 @@ public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> impl
      */
     @Override
     public Tree<String> getOrgTreeWithUser() {
-        String cacheStr = this.getJedis().get(ORG_TREE_WITH_USER_KEY);
+        Jedis jedis = this.redisDS.getJedis();
+        String cacheStr = jedis.get(ORG_TREE_WITH_USER_KEY);
         if (StrUtil.isNotBlank(cacheStr)) {
             return JSONUtil.parseObj(cacheStr).toBean(new TypeReference<Tree<String>>() {
             });
@@ -70,7 +73,7 @@ public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> impl
                 child.putExtra("users", userMap.get(child.getId()));
             }
         });
-        this.getJedis().set(ORG_TREE_WITH_USER_KEY, JSONUtil.toJsonStr(tree));
+        jedis.set(ORG_TREE_WITH_USER_KEY, JSONUtil.toJsonStr(tree));
         return tree;
     }
 
@@ -90,11 +93,5 @@ public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> impl
             }
             return new TreeNode<>(orgInfo.getOrgCode(), orgInfo.getOrgParentCode(), orgInfo.getOrgName(), weight);
         }).collect(Collectors.toList());
-    }
-
-    private Jedis getJedis() {
-        try (RedisDS redisDS = RedisDS.create()) {
-            return redisDS.getJedis();
-        }
     }
 }
