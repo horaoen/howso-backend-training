@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.13</version>
+        <version>3.0.6</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>cn.howso.backendtraining</groupId>
@@ -14,7 +14,7 @@
     <name>howso-backend-training</name>
     <description>howso-backend-training</description>
     <properties>
-        <java.version>1.8</java.version>
+        <java.version>17</java.version>
         <mybatis-plus.version>3.5.3.1</mybatis-plus.version>
     </properties>
     <dependencies>

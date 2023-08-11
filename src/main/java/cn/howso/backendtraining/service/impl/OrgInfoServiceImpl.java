@@ -13,6 +13,7 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.db.nosql.redis.RedisDS;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
 
@@ -21,6 +22,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> implements IOrgInfoService {
 
     private static final String CHINA_TOWER_ORG_CODE = "100000";
@@ -30,11 +32,6 @@ public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> impl
     private final IUserService userService;
     private final RedisDS redisDS;
 
-    public OrgInfoServiceImpl(IUserService userService, RedisDS redisDS) {
-        this.userService = userService;
-        this.redisDS = redisDS;
-    }
-
     @Override
     public Tree<String> getOrgTree() {
         // 获取缓存
@@ -43,7 +40,7 @@ public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> impl
         if (StrUtil.isNotBlank(cacheStr)) {
             return JSONUtil
                     .parseObj(cacheStr)
-                    .toBean(new TypeReference<Tree<String>>() {
+                    .toBean(new TypeReference<>() {
                     });
         }
         List<TreeNode<String>> treeNodes = buildOrgTreeNodes();
@@ -62,7 +59,7 @@ public class OrgInfoServiceImpl extends ServiceImpl<OrgInfoMapper, OrgInfo> impl
         Jedis jedis = this.redisDS.getJedis();
         String cacheStr = jedis.get(ORG_TREE_WITH_USER_KEY);
         if (StrUtil.isNotBlank(cacheStr)) {
-            return JSONUtil.parseObj(cacheStr).toBean(new TypeReference<Tree<String>>() {
+            return JSONUtil.parseObj(cacheStr).toBean(new TypeReference<>() {
             });
         }
 
